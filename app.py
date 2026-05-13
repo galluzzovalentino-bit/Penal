@@ -6,6 +6,7 @@ Ejecutar con: streamlit run app.py
 
 from __future__ import annotations
 
+import os
 import tempfile
 from pathlib import Path
 
@@ -14,6 +15,21 @@ import anthropic
 
 from document_reader import read_document, READERS
 from pdf_tools import _parse_page_spec
+
+
+def get_api_key() -> str | None:
+    """Lee la API key desde Streamlit secrets, variable de entorno o sidebar."""
+    # 1. Streamlit Cloud secrets
+    try:
+        return st.secrets["ANTHROPIC_API_KEY"]
+    except (KeyError, FileNotFoundError):
+        pass
+    # 2. Variable de entorno local
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if key:
+        return key
+    # 3. Ingreso manual en sidebar
+    return st.session_state.get("manual_api_key", "")
 
 # ─── Configuración de página ──────────────────────────────────────────────────
 
@@ -102,7 +118,7 @@ def generate_notes_stream(docs: dict[str, str], instruction: str, style_prompt: 
     )
     prompt = "\n".join(p for p in parts if p)
 
-    client = anthropic.Anthropic()
+    client = anthropic.Anthropic(api_key=get_api_key())
     with client.messages.stream(
         model="claude-opus-4-7",
         max_tokens=8192,
@@ -113,6 +129,33 @@ def generate_notes_stream(docs: dict[str, str], instruction: str, style_prompt: 
 
 
 # ─── Tabs ─────────────────────────────────────────────────────────────────────
+
+# ─── Sidebar: API Key ────────────────────────────────────────────────────────
+
+with st.sidebar:
+    st.header("⚙️ Configuración")
+    api_key = get_api_key()
+    if not api_key:
+        manual_key = st.text_input(
+            "API Key de Anthropic",
+            type="password",
+            placeholder="sk-ant-...",
+            help="Obtené tu key en console.anthropic.com",
+        )
+        if manual_key:
+            st.session_state["manual_api_key"] = manual_key
+            api_key = manual_key
+        st.info("Necesitás una API Key para generar apuntes.")
+    else:
+        st.success("API Key configurada ✓")
+
+    st.divider()
+    st.markdown("**Formatos soportados**")
+    st.markdown("PDF · Word · PowerPoint · TXT")
+    st.divider()
+    st.markdown("Creado con [Claude](https://anthropic.com) + Streamlit")
+
+# ─── Título ───────────────────────────────────────────────────────────────────
 
 st.title("📚 Apuntes con IA")
 st.caption("Subí tu bibliografía y generá apuntes al instante.")
@@ -150,6 +193,9 @@ with tab_notas:
     st.divider()
 
     if st.button("🚀 Generar Apuntes", type="primary", disabled=not uploaded_files):
+        if not get_api_key():
+            st.error("Primero ingresá tu API Key en el panel izquierdo.")
+            st.stop()
         if not uploaded_files:
             st.warning("Primero subí al menos un documento.")
         else:
