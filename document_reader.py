@@ -10,18 +10,41 @@ from pathlib import Path
 
 
 def read_pdf(path: Path) -> str:
+    # Intentar con pdfplumber (mejor calidad de extracción)
     try:
         import pdfplumber
-    except ImportError:
-        sys.exit("Falta pdfplumber. Ejecutá: pip install pdfplumber")
+        pages = []
+        with pdfplumber.open(str(path)) as pdf:
+            for i, page in enumerate(pdf.pages, 1):
+                text = page.extract_text() or ""
+                if text.strip():
+                    pages.append(f"[Página {i}]\n{text}")
+        result = "\n\n".join(pages)
+        if result.strip():
+            return result
+        # Si no extrajo texto (PDF de imágenes), caer al fallback
+    except Exception:
+        pass
 
-    pages = []
-    with pdfplumber.open(path) as pdf:
-        for i, page in enumerate(pdf.pages, 1):
+    # Fallback: pypdf
+    try:
+        from pypdf import PdfReader
+        reader = PdfReader(str(path))
+        pages = []
+        for i, page in enumerate(reader.pages, 1):
             text = page.extract_text() or ""
             if text.strip():
                 pages.append(f"[Página {i}]\n{text}")
-    return "\n\n".join(pages)
+        result = "\n\n".join(pages)
+        if result.strip():
+            return result
+    except Exception:
+        pass
+
+    raise ValueError(
+        "No se pudo extraer texto del PDF. "
+        "Puede estar protegido, ser un PDF de imágenes escaneadas, o estar dañado."
+    )
 
 
 def read_docx(path: Path) -> str:
@@ -85,11 +108,11 @@ READERS = {
 def read_document(path: str | Path) -> str:
     p = Path(path)
     if not p.exists():
-        sys.exit(f"Archivo no encontrado: {p}")
+        raise FileNotFoundError(f"Archivo no encontrado: {p}")
     ext = p.suffix.lower()
     reader = READERS.get(ext)
     if reader is None:
-        sys.exit(f"Formato no soportado: '{ext}'. Soportados: {', '.join(READERS)}")
+        raise ValueError(f"Formato no soportado: '{ext}'. Soportados: {', '.join(READERS)}")
     return reader(p)
 
 

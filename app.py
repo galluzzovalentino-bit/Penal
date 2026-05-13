@@ -97,11 +97,12 @@ STYLE_PROMPTS = {
 ACCEPTED_EXTENSIONS = list(READERS.keys())
 
 
-def save_uploaded(uploaded_file) -> Path:
+def save_uploaded(uploaded_file) -> tuple[Path, str]:
     suffix = Path(uploaded_file.name).suffix
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     tmp.write(uploaded_file.read())
     tmp.flush()
+    tmp.close()  # cerrar antes de que otra librería abra el mismo archivo
     return Path(tmp.name), uploaded_file.name
 
 
@@ -210,8 +211,8 @@ with tab_notas:
                     tmp_path, original_name = save_uploaded(uf)
                     try:
                         docs[original_name] = read_document(tmp_path)
-                    except SystemExit as e:
-                        st.error(str(e))
+                    except (SystemExit, ValueError, Exception) as e:
+                        st.error(f"Error leyendo **{original_name}**: {e}")
                         st.stop()
 
             total = sum(len(t) for t in docs.values())
