@@ -106,7 +106,7 @@ def save_uploaded(uploaded_file) -> tuple[Path, str]:
     return Path(tmp.name), uploaded_file.name
 
 
-def generate_notes_stream(docs: dict[str, str], instruction: str, style_prompt: str, api_key: str):
+def generate_notes_stream(docs: dict[str, str], instruction: str, style_prompt: str, api_key: str, model: str = "claude-sonnet-4-6"):
     parts = [
         "Sos un experto en didáctica y síntesis académica. Tu tarea es generar apuntes de estudio.",
         f"\n## Instrucción del usuario\n{instruction}" if instruction else "",
@@ -124,7 +124,7 @@ def generate_notes_stream(docs: dict[str, str], instruction: str, style_prompt: 
 
     client = anthropic.Anthropic(api_key=api_key)
     with client.messages.stream(
-        model="claude-opus-4-7",
+        model=model,
         max_tokens=8192,
         messages=[{"role": "user", "content": prompt}],
     ) as stream:
@@ -153,6 +153,20 @@ with st.sidebar:
         # Mostramos solo los primeros y últimos caracteres para confirmar que se leyó
         masked = _key[:8] + "..." + _key[-4:] if len(_key) > 12 else "***"
         st.success(f"API Key configurada ✓\n`{masked}`")
+
+    st.divider()
+    st.markdown("**Modelo**")
+    model = st.selectbox(
+        "Modelo Claude",
+        options=[
+            "claude-sonnet-4-6",
+            "claude-opus-4-5",
+            "claude-haiku-4-5-20251001",
+        ],
+        index=0,
+        label_visibility="collapsed",
+    )
+    st.caption("Sonnet: balance ideal. Opus: más detallado. Haiku: más rápido.")
 
     st.divider()
     st.markdown("**Formatos soportados**")
@@ -224,7 +238,7 @@ with tab_notas:
             result_container = st.empty()
             collected = []
 
-            for chunk in generate_notes_stream(docs, instruction, style_prompt, api_key):
+            for chunk in generate_notes_stream(docs, instruction, style_prompt, api_key, model):
                 collected.append(chunk)
                 result_container.markdown("".join(collected))
 
