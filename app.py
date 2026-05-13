@@ -21,15 +21,18 @@ def get_api_key() -> str | None:
     """Lee la API key desde Streamlit secrets, variable de entorno o sidebar."""
     # 1. Streamlit Cloud secrets
     try:
-        return st.secrets["ANTHROPIC_API_KEY"]
-    except (KeyError, FileNotFoundError):
+        key = st.secrets["ANTHROPIC_API_KEY"]
+        if key:
+            return key
+    except (KeyError, FileNotFoundError, AttributeError):
         pass
     # 2. Variable de entorno local
     key = os.environ.get("ANTHROPIC_API_KEY", "")
     if key:
         return key
     # 3. Ingreso manual en sidebar
-    return st.session_state.get("manual_api_key", "")
+    key = st.session_state.get("manual_api_key", "")
+    return key if key else None
 
 # ─── Configuración de página ──────────────────────────────────────────────────
 
@@ -102,7 +105,7 @@ def save_uploaded(uploaded_file) -> Path:
     return Path(tmp.name), uploaded_file.name
 
 
-def generate_notes_stream(docs: dict[str, str], instruction: str, style_prompt: str):
+def generate_notes_stream(docs: dict[str, str], instruction: str, style_prompt: str, api_key: str):
     parts = [
         "Sos un experto en didáctica y síntesis académica. Tu tarea es generar apuntes de estudio.",
         f"\n## Instrucción del usuario\n{instruction}" if instruction else "",
@@ -118,7 +121,7 @@ def generate_notes_stream(docs: dict[str, str], instruction: str, style_prompt: 
     )
     prompt = "\n".join(p for p in parts if p)
 
-    client = anthropic.Anthropic(api_key=get_api_key())
+    client = anthropic.Anthropic(api_key=api_key)
     with client.messages.stream(
         model="claude-opus-4-7",
         max_tokens=8192,
@@ -134,8 +137,8 @@ def generate_notes_stream(docs: dict[str, str], instruction: str, style_prompt: 
 
 with st.sidebar:
     st.header("⚙️ Configuración")
-    api_key = get_api_key()
-    if not api_key:
+    _key = get_api_key()
+    if not _key:
         manual_key = st.text_input(
             "API Key de Anthropic",
             type="password",
@@ -144,10 +147,11 @@ with st.sidebar:
         )
         if manual_key:
             st.session_state["manual_api_key"] = manual_key
-            api_key = manual_key
-        st.info("Necesitás una API Key para generar apuntes.")
+        st.warning("Ingresá tu API Key para usar la app.")
     else:
-        st.success("API Key configurada ✓")
+        # Mostramos solo los primeros y últimos caracteres para confirmar que se leyó
+        masked = _key[:8] + "..." + _key[-4:] if len(_key) > 12 else "***"
+        st.success(f"API Key configurada ✓\n`{masked}`")
 
     st.divider()
     st.markdown("**Formatos soportados**")
@@ -193,7 +197,8 @@ with tab_notas:
     st.divider()
 
     if st.button("🚀 Generar Apuntes", type="primary", disabled=not uploaded_files):
-        if not get_api_key():
+        api_key = get_api_key()
+        if not api_key:
             st.error("Primero ingresá tu API Key en el panel izquierdo.")
             st.stop()
         if not uploaded_files:
@@ -218,7 +223,7 @@ with tab_notas:
             result_container = st.empty()
             collected = []
 
-            for chunk in generate_notes_stream(docs, instruction, style_prompt):
+            for chunk in generate_notes_stream(docs, instruction, style_prompt, api_key):
                 collected.append(chunk)
                 result_container.markdown("".join(collected))
 
