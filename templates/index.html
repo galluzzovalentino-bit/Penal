@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ApuntesIA – Procesador de Documentos con IA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════
+   BASE
+═══════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080b14;
+  --bg2:#0d1120;
+  --bg3:#111827;
+  --glass:rgba(255,255,255,0.04);
+  --glass2:rgba(255,255,255,0.07);
+  --border:rgba(255,255,255,0.08);
+  --border2:rgba(255,255,255,0.14);
+  --purple:#7c3aed;
+  --purple2:#8b5cf6;
+  --purple3:#a78bfa;
+  --blue:#3b82f6;
+  --cyan:#06b6d4;
+  --pink:#ec4899;
+  --green:#10b981;
+  --yellow:#f59e0b;
+  --red:#ef4444;
+  --text:#f1f5f9;
+  --text2:#94a3b8;
+  --text3:#64748b;
+  --radius:14px;
+  --radius-sm:8px;
+  --shadow:0 20px 60px rgba(0,0,0,0.5);
+  --glow:0 0 40px rgba(124,58,237,0.25);
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+/* Animated background */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 10%,rgba(124,58,237,.18) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%,rgba(59,130,246,.12) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 60% at 50% 50%,rgba(6,182,212,.06) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
+}
+/* ═══════════════════════════════════════════════
+   NAV
+═══════════════════════════════════════════════ */
+nav{
+  position:sticky;top:0;z-index:100;
+  backdrop-filter:blur(20px) saturate(1.8);
+  background:rgba(8,11,20,.85);
+  border-bottom:1px solid var(--border);
+  padding:0 24px;
+  display:flex;align-items:center;justify-content:space-between;height:64px;
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{
+  width:38px;height:38px;border-radius:10px;
+  background:linear-gradient(135deg,var(--purple),var(--blue));
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+  box-shadow:0 4px 15px rgba(124,58,237,.4);
+}
+.logo-text{font-size:1.2rem;font-weight:800;
+  background:linear-gradient(90deg,var(--purple3),var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-badge{
+  background:linear-gradient(135deg,var(--purple),var(--blue));
+  color:#fff;font-size:.65rem;font-weight:700;
+  padding:3px 10px;border-radius:20px;letter-spacing:.05em;text-transform:uppercase;
+}
+/* ═══════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════ */
+.container{max-width:1200px;margin:0 auto;padding:40px 24px;position:relative;z-index:1}
+/* ═══════════════════════════════════════════════
+   HERO
+═══════════════════════════════════════════════ */
+.hero{text-align:center;padding:60px 0 48px}
+.hero-tag{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.35);
+  color:var(--purple3);font-size:.8rem;font-weight:600;
+  padding:6px 16px;border-radius:30px;margin-bottom:24px;letter-spacing:.04em;
+}
+.hero h1{
+  font-size:clamp(2.2rem,5vw,3.6rem);font-weight:900;line-height:1.1;
+  background:linear-gradient(135deg,#fff 30%,var(--purple3) 60%,var(--cyan) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:18px;
+}
+.hero p{font-size:1.1rem;color:var(--text2);max-width:600px;margin:0 auto 32px;line-height:1.7}
+/* ═══════════════════════════════════════════════
+   TABS
+═══════════════════════════════════════════════ */
+.tabs{
+  display:flex;gap:4px;
+  background:var(--glass);border:1px solid var(--border);
+  border-radius:calc(var(--radius) + 4px);padding:5px;
+  margin-bottom:40px;max-width:500px;margin-left:auto;margin-right:auto;
+}
+.tab{
+  flex:1;padding:11px 20px;border-radius:var(--radius-sm);
+  border:none;background:transparent;color:var(--text2);
+  font-family:'Inter',sans-serif;font-size:.9rem;font-weight:500;
+  cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.tab.active{
+  background:linear-gradient(135deg,var(--purple),var(--blue));
+  color:#fff;font-weight:600;
+  box-shadow:0 4px 15px rgba(124,58,237,.4);
+}
+.tab:not(.active):hover{background:var(--glass2);color:var(--text)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+/* ═══════════════════════════════════════════════
+   CARD
+═══════════════════════════════════════════════ */
+.card{
+  background:var(--glass);
+  backdrop-filter:blur(20px);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:28px;
+  margin-bottom:20px;
+  transition:border-color .2s;
+}
+.card:hover{border-color:var(--border2)}
+.card-title{
+  font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--purple3);margin-bottom:16px;display:flex;align-items:center;gap:8px;
+}
+/* ═══════════════════════════════════════════════
+   API KEY
+═══════════════════════════════════════════════ */
+.api-row{display:flex;gap:10px;align-items:stretch}
+.input-wrap{position:relative;flex:1}
+.input-wrap i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:.9rem}
+input[type=text],input[type=password],textarea,select{
+  width:100%;background:rgba(0,0,0,.3);border:1px solid var(--border);
+  border-radius:var(--radius-sm);color:var(--text);
+  font-family:'Inter',sans-serif;font-size:.9rem;
+  padding:12px 14px 12px 38px;
+  transition:border-color .2s,box-shadow .2s;outline:none;
+}
+input[type=text]:focus,input[type=password]:focus,textarea:focus,select:focus{
+  border-color:var(--purple2);box-shadow:0 0 0 3px rgba(124,58,237,.2);
+}
+textarea{resize:vertical;min-height:100px;padding:12px 14px}
+select{padding:12px 14px;padding-left:14px;cursor:pointer}
+.input-wrap.no-icon input,
+.input-wrap.no-icon textarea,
+.input-wrap.no-icon select{padding-left:14px}
+.btn-eye{
+  background:var(--glass);border:1px solid var(--border);border-radius:var(--radius-sm);
+  color:var(--text2);cursor:pointer;padding:0 16px;transition:all .2s;
+}
+.btn-eye:hover{background:var(--glass2);color:var(--text)}
+/* ═══════════════════════════════════════════════
+   DROP ZONE
+═══════════════════════════════════════════════ */
+.drop-zone{
+  border:2px dashed var(--border2);border-radius:var(--radius);
+  padding:48px 24px;text-align:center;cursor:pointer;
+  transition:all .25s;position:relative;
+  background:rgba(124,58,237,.03);
+}
+.drop-zone.dragover{
+  border-color:var(--purple2);background:rgba(124,58,237,.1);
+  box-shadow:0 0 30px rgba(124,58,237,.2);
+}
+.drop-zone input[type=file]{
+  position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
+}
+.drop-icon{font-size:3rem;margin-bottom:16px;
+  background:linear-gradient(135deg,var(--purple),var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.drop-zone h3{font-size:1.1rem;font-weight:700;margin-bottom:8px}
+.drop-zone p{font-size:.85rem;color:var(--text2)}
+.file-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px;justify-content:center}
+.file-chip{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);
+  border-radius:20px;padding:6px 14px;font-size:.8rem;font-weight:500;color:var(--purple3);
+}
+.file-chip i{cursor:pointer;color:var(--text3)}
+.file-chip i:hover{color:var(--red)}
+/* ═══════════════════════════════════════════════
+   FORMAT SELECTOR
+═══════════════════════════════════════════════ */
+.format-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}
+.format-card{
+  border:2px solid var(--border);border-radius:var(--radius-sm);
+  padding:14px 10px;text-align:center;cursor:pointer;transition:all .2s;
+  background:var(--glass);
+}
+.format-card:hover{border-color:var(--purple2);background:rgba(124,58,237,.1)}
+.format-card.selected{
+  border-color:var(--purple2);background:rgba(124,58,237,.15);
+  box-shadow:0 0 20px rgba(124,58,237,.25);
+}
+.format-card i{font-size:1.6rem;margin-bottom:8px;display:block}
+.format-card span{font-size:.8rem;font-weight:600}
+.fmt-pdf i{color:#ef4444}
+.fmt-docx i{color:#3b82f6}
+.fmt-pptx i{color:#f59e0b}
+.fmt-txt i{color:#10b981}
+/* ═══════════════════════════════════════════════
+   DETAIL SELECTOR
+═══════════════════════════════════════════════ */
+.detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media(max-width:600px){.detail-grid{grid-template-columns:repeat(2,1fr)}}
+.detail-card{
+  border:2px solid var(--border);border-radius:var(--radius-sm);
+  padding:12px 8px;text-align:center;cursor:pointer;transition:all .2s;background:var(--glass);
+}
+.detail-card.selected{border-color:var(--cyan);background:rgba(6,182,212,.12);box-shadow:0 0 18px rgba(6,182,212,.2)}
+.detail-card:hover:not(.selected){border-color:var(--border2);background:var(--glass2)}
+.detail-card .dlabel{font-size:.8rem;font-weight:700;margin-bottom:4px}
+.detail-card .dsub{font-size:.7rem;color:var(--text3)}
+/* ═══════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  padding:14px 28px;border-radius:var(--radius-sm);border:none;
+  font-family:'Inter',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;
+  transition:all .2s;text-decoration:none;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--purple),var(--blue));
+  color:#fff;box-shadow:0 4px 20px rgba(124,58,237,.4);width:100%;font-size:1rem;
+}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 30px rgba(124,58,237,.55)}
+.btn-primary:active{transform:translateY(0)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-secondary{background:var(--glass2);border:1px solid var(--border2);color:var(--text)}
+.btn-secondary:hover{background:rgba(255,255,255,.1);border-color:var(--purple2)}
+.btn-sm{padding:8px 16px;font-size:.82rem;border-radius:var(--radius-sm)}
+.dl-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+/* ═══════════════════════════════════════════════
+   LOADER
+═══════════════════════════════════════════════ */
+.loader-wrap{display:none;text-align:center;padding:48px}
+.loader-wrap.show{display:block}
+.spinner{
+  width:56px;height:56px;border-radius:50%;
+  border:3px solid rgba(124,58,237,.2);
+  border-top-color:var(--purple2);
+  animation:spin 1s linear infinite;margin:0 auto 20px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-text{color:var(--text2);font-size:.95rem}
+.loader-steps{margin-top:20px;display:flex;flex-direction:column;gap:8px;max-width:320px;margin-left:auto;margin-right:auto}
+.step{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--text3);padding:8px 14px;background:var(--glass);border-radius:var(--radius-sm);text-align:left}
+.step.done{color:var(--green)}
+.step.active{color:var(--purple3);background:rgba(124,58,237,.12)}
+.step i{width:16px;text-align:center}
+/* ═══════════════════════════════════════════════
+   RESULT
+═══════════════════════════════════════════════ */
+.result-wrap{display:none}
+.result-wrap.show{display:block}
+.result-header{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;margin-bottom:20px;
+}
+.result-title{font-size:1.1rem;font-weight:700;display:flex;align-items:center;gap:10px}
+.result-title .badge{
+  background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);
+  color:var(--green);font-size:.7rem;font-weight:700;
+  padding:4px 10px;border-radius:20px;letter-spacing:.05em;
+}
+.notes-preview{
+  background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:var(--radius);
+  padding:28px;max-height:520px;overflow-y:auto;line-height:1.8;
+  font-size:.92rem;
+}
+.notes-preview::-webkit-scrollbar{width:6px}
+.notes-preview::-webkit-scrollbar-track{background:transparent}
+.notes-preview::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+/* Markdown styles inside preview */
+.notes-preview h1{font-size:1.6rem;font-weight:800;margin:16px 0 12px;color:#fff;border-bottom:2px solid rgba(124,58,237,.4);padding-bottom:8px}
+.notes-preview h2{font-size:1.25rem;font-weight:700;margin:20px 0 10px;color:var(--purple3)}
+.notes-preview h3{font-size:1.05rem;font-weight:700;margin:16px 0 8px;color:var(--cyan)}
+.notes-preview h4{font-size:.95rem;font-weight:700;margin:12px 0 6px;color:var(--blue)}
+.notes-preview p{margin-bottom:12px;color:var(--text2)}
+.notes-preview ul,
+.notes-preview ol{margin:8px 0 16px 20px}
+.notes-preview li{margin-bottom:6px;color:var(--text2)}
+.notes-preview strong{color:var(--text);font-weight:700}
+.notes-preview em{color:var(--purple3)}
+.notes-preview code{background:rgba(124,58,237,.2);color:var(--purple3);padding:2px 6px;border-radius:4px;font-size:.85em}
+.notes-preview pre{background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;overflow-x:auto;margin:12px 0}
+.notes-preview blockquote{border-left:3px solid var(--purple2);padding-left:16px;margin:12px 0;color:var(--text2);font-style:italic}
+.notes-preview table{width:100%;border-collapse:collapse;margin:12px 0}
+.notes-preview th{background:rgba(124,58,237,.2);padding:10px;border:1px solid var(--border);font-weight:700;text-align:left}
+.notes-preview td{padding:10px;border:1px solid var(--border);color:var(--text2)}
+.notes-preview hr{border:none;border-top:1px solid var(--border);margin:20px 0}
+/* ═══════════════════════════════════════════════
+   TEXT TOOLS
+═══════════════════════════════════════════════ */
+.tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:28px}
+.tool-card{
+  background:var(--glass);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px 16px;text-align:center;
+  cursor:pointer;transition:all .2s;
+}
+.tool-card:hover{border-color:var(--border2);background:var(--glass2);transform:translateY(-2px)}
+.tool-card.active{border-color:var(--purple2);background:rgba(124,58,237,.12);box-shadow:var(--glow)}
+.tool-card i{font-size:1.8rem;margin-bottom:10px;display:block}
+.tool-card .tname{font-size:.82rem;font-weight:700}
+.tool-card .tsub{font-size:.72rem;color:var(--text3);margin-top:4px}
+.tool-panel{display:none}
+.tool-panel.active{display:block}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:700px){.two-col{grid-template-columns:1fr}}
+/* ═══════════════════════════════════════════════
+   ALERTS
+═══════════════════════════════════════════════ */
+.alert{
+  padding:14px 18px;border-radius:var(--radius-sm);font-size:.88rem;
+  display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;
+}
+.alert-error{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#fca5a5}
+.alert-success{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:#6ee7b7}
+.alert-info{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#93c5fd}
+.alert i{margin-top:2px;flex-shrink:0}
+/* ═══════════════════════════════════════════════
+   STATS BAR
+═══════════════════════════════════════════════ */
+.stats{display:flex;gap:24px;flex-wrap:wrap;margin-top:16px}
+.stat{font-size:.8rem;color:var(--text3)}
+.stat strong{color:var(--text2)}
+/* ═══════════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════════ */
+footer{
+  text-align:center;padding:40px 24px;
+  border-top:1px solid var(--border);color:var(--text3);font-size:.82rem;
+  margin-top:80px;position:relative;z-index:1;
+}
+footer span{color:var(--purple3)}
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════ */
+@media(max-width:640px){
+  .hero{padding:40px 0 32px}
+  .hero h1{font-size:2rem}
+  .tabs{max-width:100%}
+  .format-grid{grid-template-columns:repeat(2,1fr)}
+  .dl-row{flex-direction:column}
+  .dl-row .btn{width:100%}
+}
+/* ═══════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════ */
+.hidden{display:none!important}
+.mt8{margin-top:8px}
+.mt16{margin-top:16px}
+.mt24{margin-top:24px}
+.label{font-size:.78rem;font-weight:600;color:var(--text2);margin-bottom:8px;display:block}
+.row{display:flex;gap:12px;align-items:center}
+</style>
+</head>
+<body>
+
+<!-- ══════════ NAV ══════════ -->
+<nav>
+  <div class="logo">
+    <div class="logo-icon"><i class="fa-solid fa-brain"></i></div>
+    <span class="logo-text">ApuntesIA</span>
+  </div>
+  <span class="nav-badge"><i class="fa-solid fa-bolt"></i> Powered by Claude</span>
+</nav>
+
+<!-- ══════════ HERO ══════════ -->
+<div class="container">
+  <div class="hero">
+    <div class="hero-tag"><i class="fa-solid fa-sparkles"></i> Inteligencia Artificial para tus estudios</div>
+    <h1>Transforma cualquier<br/>documento en apuntes<br/>extraordinarios</h1>
+    <p>Sube PDFs, Word, PowerPoint o texto y obtén apuntes ultra detallados generados por IA. También incluye herramientas profesionales para manipular textos.</p>
+  </div>
+
+  <!-- ══════════ TABS ══════════ -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('notes')">
+      <i class="fa-solid fa-file-lines"></i> Generador de Apuntes
+    </button>
+    <button class="tab" onclick="switchTab('tools')">
+      <i class="fa-solid fa-wand-magic-sparkles"></i> Herramientas de Texto
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       PANEL 1: GENERADOR DE APUNTES
+  ══════════════════════════════════════ -->
+  <div id="panel-notes" class="tab-panel active">
+
+    <!-- API KEY -->
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-key"></i> Configuración de API</div>
+      <div class="api-row">
+        <div class="input-wrap">
+          <i class="fa-solid fa-key"></i>
+          <input type="password" id="api-key" placeholder="sk-ant-api03-..." autocomplete="off"/>
+        </div>
+        <button class="btn-eye" onclick="toggleKey()" title="Mostrar/ocultar clave">
+          <i class="fa-solid fa-eye" id="eye-icon"></i>
+        </button>
+      </div>
+      <div class="alert alert-info mt8" style="margin-bottom:0">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>Tu API Key de Anthropic (console.anthropic.com). Se guarda solo en tu navegador.</span>
+      </div>
+    </div>
+
+    <!-- DROP ZONE -->
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-cloud-arrow-up"></i> Documentos de Entrada</div>
+      <div class="drop-zone" id="drop-zone" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+        <input type="file" id="file-input" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.txt" onchange="onFileSelect(event)"/>
+        <div class="drop-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+        <h3>Arrastra tus archivos aquí</h3>
+        <p>PDF, Word (.docx), PowerPoint (.pptx), TXT<br/>Múltiples archivos permitidos • Máx. 50MB</p>
+        <div class="file-chips" id="file-chips"></div>
+      </div>
+    </div>
+
+    <!-- INSTRUCTIONS -->
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-comment-dots"></i> Instrucciones para los Apuntes</div>
+      <div class="input-wrap no-icon">
+        <textarea id="instructions" placeholder="Ej: Enfócate en los conceptos de biología celular. Incluye tablas comparativas. Explica cada proceso paso a paso. Añade preguntas de repaso al final..."></textarea>
+      </div>
+    </div>
+
+    <!-- DETAIL LEVEL -->
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-gauge-high"></i> Nivel de Detalle</div>
+      <div class="detail-grid" id="detail-grid">
+        <div class="detail-card" data-val="summary" onclick="selectDetail(this)">
+          <div class="dlabel">📋 Resumen</div>
+          <div class="dsub">Solo lo esencial</div>
+        </div>
+        <div class="detail-card" data-val="medium" onclick="selectDetail(this)">
+          <div class="dlabel">📖 Moderado</div>
+          <div class="dsub">Puntos principales</div>
+        </div>
+        <div class="detail-card selected" data-val="high" onclick="selectDetail(this)">
+          <div class="dlabel">🎯 Alto</div>
+          <div class="dsub">Detallado con ejemplos</div>
+        </div>
+        <div class="detail-card" data-val="ultra" onclick="selectDetail(this)">
+          <div class="dlabel">🚀 Ultra</div>
+          <div class="dsub">Máximo detalle</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OUTPUT FORMAT -->
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-file-export"></i> Formato de Salida</div>
+      <div class="format-grid" id="notes-format-grid">
+        <div class="format-card fmt-pdf selected" data-val="pdf" onclick="selectFormat('notes',this)">
+          <i class="fa-solid fa-file-pdf"></i>
+          <span>PDF</span>
+        </div>
+        <div class="format-card fmt-docx" data-val="docx" onclick="selectFormat('notes',this)">
+          <i class="fa-solid fa-file-word"></i>
+          <span>Word (.docx)</span>
+        </div>
+        <div class="format-card fmt-pptx" data-val="pptx" onclick="selectFormat('notes',this)">
+          <i class="fa-solid fa-file-powerpoint"></i>
+          <span>PowerPoint</span>
+        </div>
+        <div class="format-card fmt-txt" data-val="txt" onclick="selectFormat('notes',this)">
+          <i class="fa-solid fa-file-lines"></i>
+          <span>Texto</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ERROR -->
+    <div id="notes-error" class="alert alert-error hidden">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span id="notes-error-msg"></span>
+    </div>
+
+    <!-- GENERATE BUTTON -->
+    <button class="btn btn-primary" id="btn-generate" onclick="generateNotes()">
+      <i class="fa-solid fa-brain"></i> Generar Apuntes con IA
+    </button>
+
+    <!-- LOADER -->
+    <div class="loader-wrap" id="notes-loader">
+      <div class="spinner"></div>
+      <div class="loader-text">Claude está procesando tu material…</div>
+      <div class="loader-steps">
+        <div class="step active" id="step1"><i class="fa-solid fa-file-import"></i> Extrayendo texto de los documentos</div>
+        <div class="step" id="step2"><i class="fa-solid fa-brain"></i> Analizando con IA</div>
+        <div class="step" id="step3"><i class="fa-solid fa-pen-fancy"></i> Generando apuntes detallados</div>
+        <div class="step" id="step4"><i class="fa-solid fa-file-export"></i> Preparando el archivo de salida</div>
+      </div>
+    </div>
+
+    <!-- RESULT -->
+    <div class="result-wrap" id="notes-result">
+      <div class="card" style="margin-top:24px">
+        <div class="result-header">
+          <div class="result-title">
+            <i class="fa-solid fa-check-circle" style="color:var(--green)"></i>
+            Apuntes Generados
+            <span class="badge">LISTO</span>
+          </div>
+          <div class="dl-row">
+            <button class="btn btn-secondary btn-sm" onclick="downloadNotes()">
+              <i class="fa-solid fa-download"></i> Descargar <span id="dl-format-label">PDF</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="copyNotes()">
+              <i class="fa-solid fa-copy"></i> Copiar
+            </button>
+          </div>
+        </div>
+        <div class="stats" id="notes-stats"></div>
+        <div class="notes-preview mt16" id="notes-preview"></div>
+        <div class="dl-row mt16">
+          <button class="btn btn-secondary btn-sm" onclick="downloadAs('pdf')"><i class="fa-solid fa-file-pdf" style="color:#ef4444"></i> PDF</button>
+          <button class="btn btn-secondary btn-sm" onclick="downloadAs('docx')"><i class="fa-solid fa-file-word" style="color:#3b82f6"></i> Word</button>
+          <button class="btn btn-secondary btn-sm" onclick="downloadAs('pptx')"><i class="fa-solid fa-file-powerpoint" style="color:#f59e0b"></i> PowerPoint</button>
+          <button class="btn btn-secondary btn-sm" onclick="downloadAs('txt')"><i class="fa-solid fa-file-lines" style="color:#10b981"></i> Texto</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       PANEL 2: HERRAMIENTAS DE TEXTO
+  ══════════════════════════════════════ -->
+  <div id="panel-tools" class="tab-panel">
+
+    <!-- API KEY (tools) -->
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-key"></i> API Key</div>
+      <div class="api-row">
+        <div class="input-wrap">
+          <i class="fa-solid fa-key"></i>
+          <input type="password" id="api-key-tools" placeholder="sk-ant-api03-..." autocomplete="off"/>
+        </div>
+        <button class="btn-eye" onclick="toggleKeyTools()">
+          <i class="fa-solid fa-eye" id="eye-icon-tools"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- TOOL SELECTOR -->
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-toolbox"></i> Selecciona la Herramienta</div>
+      <div class="tools-grid">
+        <div class="tool-card active" data-tool="compress" onclick="selectTool(this)">
+          <i class="fa-solid fa-compress-alt" style="color:var(--purple3)"></i>
+          <div class="tname">Comprimir</div>
+          <div class="tsub">Resumir y condensar</div>
+        </div>
+        <div class="tool-card" data-tool="expand" onclick="selectTool(this)">
+          <i class="fa-solid fa-expand-alt" style="color:var(--cyan)"></i>
+          <div class="tname">Expandir</div>
+          <div class="tsub">Desarrollar en detalle</div>
+        </div>
+        <div class="tool-card" data-tool="extract" onclick="selectTool(this)">
+          <i class="fa-solid fa-list-check" style="color:var(--green)"></i>
+          <div class="tname">Puntos Clave</div>
+          <div class="tsub">Extraer lo esencial</div>
+        </div>
+        <div class="tool-card" data-tool="bullets" onclick="selectTool(this)">
+          <i class="fa-solid fa-list" style="color:var(--blue)"></i>
+          <div class="tname">Bullet Points</div>
+          <div class="tsub">Convertir a lista</div>
+        </div>
+        <div class="tool-card" data-tool="table" onclick="selectTool(this)">
+          <i class="fa-solid fa-table" style="color:var(--yellow)"></i>
+          <div class="tname">Tabla</div>
+          <div class="tsub">Convertir a tabla</div>
+        </div>
+        <div class="tool-card" data-tool="merge" onclick="selectTool(this)">
+          <i class="fa-solid fa-code-merge" style="color:var(--pink)"></i>
+          <div class="tname">Combinar</div>
+          <div class="tsub">Unir dos textos</div>
+        </div>
+        <div class="tool-card" data-tool="split" onclick="selectTool(this)">
+          <i class="fa-solid fa-scissors" style="color:var(--red)"></i>
+          <div class="tname">Dividir</div>
+          <div class="tsub">Separar por temas</div>
+        </div>
+        <div class="tool-card" data-tool="clean" onclick="selectTool(this)">
+          <i class="fa-solid fa-broom" style="color:var(--green)"></i>
+          <div class="tname">Limpiar</div>
+          <div class="tsub">Formatear y corregir</div>
+        </div>
+        <div class="tool-card" data-tool="rewrite" onclick="selectTool(this)">
+          <i class="fa-solid fa-pen-to-square" style="color:var(--cyan)"></i>
+          <div class="tname">Reescribir</div>
+          <div class="tsub">Cambiar el estilo</div>
+        </div>
+        <div class="tool-card" data-tool="translate" onclick="selectTool(this)">
+          <i class="fa-solid fa-language" style="color:var(--purple3)"></i>
+          <div class="tname">Traducir</div>
+          <div class="tsub">Cambiar idioma</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INPUT AREA -->
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-keyboard"></i> Texto de Entrada</div>
+
+      <!-- Single text (most tools) -->
+      <div id="tools-single">
+        <label class="label">Texto principal</label>
+        <div class="input-wrap no-icon">
+          <textarea id="tool-text" style="min-height:160px" placeholder="Pega aquí tu texto…" oninput="updateStats()"></textarea>
+        </div>
+        <div class="stats" id="tool-stats"></div>
+      </div>
+
+      <!-- Two texts (merge) -->
+      <div id="tools-double" class="hidden">
+        <div class="two-col">
+          <div>
+            <label class="label">Texto 1</label>
+            <div class="input-wrap no-icon">
+              <textarea id="tool-text2a" style="min-height:140px" placeholder="Primer texto…"></textarea>
+            </div>
+          </div>
+          <div>
+            <label class="label">Texto 2</label>
+            <div class="input-wrap no-icon">
+              <textarea id="tool-text2b" style="min-height:140px" placeholder="Segundo texto…"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Options (rewrite / translate) -->
+      <div id="tools-options" class="hidden mt16">
+        <div id="opt-style" class="hidden">
+          <label class="label">Estilo de escritura</label>
+          <div class="input-wrap no-icon">
+            <select id="sel-style">
+              <option value="académico y formal">Académico y formal</option>
+              <option value="simple y claro">Simple y claro</option>
+              <option value="persuasivo y convincente">Persuasivo y convincente</option>
+              <option value="técnico y preciso">Técnico y preciso</option>
+              <option value="narrativo y descriptivo">Narrativo y descriptivo</option>
+              <option value="ejecutivo y conciso">Ejecutivo y conciso</option>
+            </select>
+          </div>
+        </div>
+        <div id="opt-lang" class="hidden">
+          <label class="label">Idioma de destino</label>
+          <div class="input-wrap no-icon">
+            <select id="sel-lang">
+              <option value="inglés">Inglés</option>
+              <option value="español">Español</option>
+              <option value="francés">Francés</option>
+              <option value="alemán">Alemán</option>
+              <option value="portugués">Portugués</option>
+              <option value="italiano">Italiano</option>
+              <option value="japonés">Japonés</option>
+              <option value="chino mandarín">Chino Mandarín</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Output format (tools) -->
+      <div class="mt16">
+        <label class="label">Formato de descarga del resultado</label>
+        <div class="format-grid" id="tools-format-grid">
+          <div class="format-card fmt-pdf" data-val="pdf" onclick="selectFormat('tools',this)">
+            <i class="fa-solid fa-file-pdf"></i><span>PDF</span>
+          </div>
+          <div class="format-card fmt-docx" data-val="docx" onclick="selectFormat('tools',this)">
+            <i class="fa-solid fa-file-word"></i><span>Word</span>
+          </div>
+          <div class="format-card fmt-pptx" data-val="pptx" onclick="selectFormat('tools',this)">
+            <i class="fa-solid fa-file-powerpoint"></i><span>PowerPoint</span>
+          </div>
+          <div class="format-card fmt-txt selected" data-val="txt" onclick="selectFormat('tools',this)">
+            <i class="fa-solid fa-file-lines"></i><span>Texto</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ERROR -->
+    <div id="tools-error" class="alert alert-error hidden">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span id="tools-error-msg"></span>
+    </div>
+
+    <!-- RUN TOOL BUTTON -->
+    <button class="btn btn-primary" id="btn-tool" onclick="runTool()">
+      <i class="fa-solid fa-wand-magic-sparkles"></i> Procesar con IA
+    </button>
+
+    <!-- TOOL LOADER -->
+    <div class="loader-wrap" id="tools-loader">
+      <div class="spinner"></div>
+      <div class="loader-text">Procesando tu texto…</div>
+    </div>
+
+    <!-- TOOL RESULT -->
+    <div class="result-wrap" id="tools-result">
+      <div class="card" style="margin-top:24px">
+        <div class="result-header">
+          <div class="result-title">
+            <i class="fa-solid fa-check-circle" style="color:var(--green)"></i>
+            Resultado
+            <span class="badge">LISTO</span>
+          </div>
+          <div class="dl-row">
+            <button class="btn btn-secondary btn-sm" onclick="downloadTool()">
+              <i class="fa-solid fa-download"></i> Descargar
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="copyTool()">
+              <i class="fa-solid fa-copy"></i> Copiar
+            </button>
+          </div>
+        </div>
+        <div class="notes-preview mt16" id="tools-preview"></div>
+        <div class="dl-row mt16">
+          <button class="btn btn-secondary btn-sm" onclick="downloadToolAs('pdf')"><i class="fa-solid fa-file-pdf" style="color:#ef4444"></i> PDF</button>
+          <button class="btn btn-secondary btn-sm" onclick="downloadToolAs('docx')"><i class="fa-solid fa-file-word" style="color:#3b82f6"></i> Word</button>
+          <button class="btn btn-secondary btn-sm" onclick="downloadToolAs('pptx')"><i class="fa-solid fa-file-powerpoint" style="color:#f59e0b"></i> PowerPoint</button>
+          <button class="btn btn-secondary btn-sm" onclick="downloadToolAs('txt')"><i class="fa-solid fa-file-lines" style="color:#10b981"></i> Texto</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>Hecho con <span>♥</span> · ApuntesIA · Powered by <span>Claude AI</span></p>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+const state = {
+  files: [],
+  notesFormat: 'pdf',
+  toolsFormat: 'txt',
+  detailLevel: 'high',
+  currentTool: 'compress',
+  currentNotes: '',
+  currentToolResult: '',
+};
+
+// Persist API key
+window.addEventListener('load', () => {
+  const k = localStorage.getItem('ai_api_key') || '';
+  document.getElementById('api-key').value = k;
+  document.getElementById('api-key-tools').value = k;
+});
+document.getElementById('api-key').addEventListener('input', e => {
+  localStorage.setItem('ai_api_key', e.target.value);
+  document.getElementById('api-key-tools').value = e.target.value;
+});
+document.getElementById('api-key-tools').addEventListener('input', e => {
+  localStorage.setItem('ai_api_key', e.target.value);
+  document.getElementById('api-key').value = e.target.value;
+});
+
+// ═══════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='notes')||(i===1&&tab==='tools')));
+  document.getElementById('panel-notes').classList.toggle('active', tab==='notes');
+  document.getElementById('panel-tools').classList.toggle('active', tab==='tools');
+}
+
+// ═══════════════════════════════════════════════
+//  API KEY TOGGLE
+// ═══════════════════════════════════════════════
+function toggleKey() {
+  const inp = document.getElementById('api-key');
+  const icon = document.getElementById('eye-icon');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  icon.className = inp.type === 'password' ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+}
+function toggleKeyTools() {
+  const inp = document.getElementById('api-key-tools');
+  const icon = document.getElementById('eye-icon-tools');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  icon.className = inp.type === 'password' ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+}
+
+// ═══════════════════════════════════════════════
+//  FILE HANDLING
+// ═══════════════════════════════════════════════
+function onDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('dragover'); }
+function onDragLeave(e) { document.getElementById('drop-zone').classList.remove('dragover'); }
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('dragover');
+  addFiles([...e.dataTransfer.files]);
+}
+function onFileSelect(e) { addFiles([...e.target.files]); }
+
+function addFiles(newFiles) {
+  newFiles.forEach(f => {
+    if (!state.files.find(x => x.name === f.name)) state.files.push(f);
+  });
+  renderChips();
+}
+function removeFile(name) {
+  state.files = state.files.filter(f => f.name !== name);
+  renderChips();
+}
+function renderChips() {
+  const c = document.getElementById('file-chips');
+  c.innerHTML = state.files.map(f => `
+    <div class="file-chip">
+      <i class="${fileIcon(f.name)}"></i>
+      ${f.name}
+      <i class="fa-solid fa-xmark" onclick="removeFile('${f.name}')"></i>
+    </div>`).join('');
+}
+function fileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  if (ext==='pdf') return 'fa-solid fa-file-pdf';
+  if (['doc','docx'].includes(ext)) return 'fa-solid fa-file-word';
+  if (['ppt','pptx'].includes(ext)) return 'fa-solid fa-file-powerpoint';
+  return 'fa-solid fa-file-lines';
+}
+
+// ═══════════════════════════════════════════════
+//  SELECTORS
+// ═══════════════════════════════════════════════
+function selectFormat(context, el) {
+  const grid = document.getElementById(context==='notes'?'notes-format-grid':'tools-format-grid');
+  grid.querySelectorAll('.format-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  if (context==='notes') state.notesFormat = el.dataset.val;
+  else state.toolsFormat = el.dataset.val;
+}
+function selectDetail(el) {
+  document.querySelectorAll('#detail-grid .detail-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  state.detailLevel = el.dataset.val;
+}
+function selectTool(el) {
+  document.querySelectorAll('.tool-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  state.currentTool = el.dataset.tool;
+  // Show/hide inputs based on tool
+  const isMerge = state.currentTool === 'merge';
+  document.getElementById('tools-single').classList.toggle('hidden', isMerge);
+  document.getElementById('tools-double').classList.toggle('hidden', !isMerge);
+  // Options
+  const hasOpt = ['rewrite','translate'].includes(state.currentTool);
+  document.getElementById('tools-options').classList.toggle('hidden', !hasOpt);
+  document.getElementById('opt-style').classList.toggle('hidden', state.currentTool !== 'rewrite');
+  document.getElementById('opt-lang').classList.toggle('hidden', state.currentTool !== 'translate');
+}
+
+// ═══════════════════════════════════════════════
+//  STATS
+// ═══════════════════════════════════════════════
+function updateStats() {
+  const t = document.getElementById('tool-text').value;
+  const words = t.trim() ? t.trim().split(/\s+/).length : 0;
+  const chars = t.length;
+  document.getElementById('tool-stats').innerHTML =
+    `<span class="stat"><strong>${words}</strong> palabras</span>
+     <span class="stat"><strong>${chars}</strong> caracteres</span>`;
+}
+
+// ═══════════════════════════════════════════════
+//  GENERATE NOTES
+// ═══════════════════════════════════════════════
+async function generateNotes() {
+  const apiKey = document.getElementById('api-key').value.trim();
+  if (!apiKey) return showError('notes', 'Ingresa tu API Key de Anthropic.');
+  if (!state.files.length) return showError('notes', 'Sube al menos un archivo.');
+  hideError('notes');
+
+  const btn = document.getElementById('btn-generate');
+  btn.disabled = true;
+  showLoader('notes');
+  hideResult('notes');
+
+  // Animate steps
+  let stepIdx = 0;
+  const steps = ['step1','step2','step3','step4'];
+  const stepTimer = setInterval(() => {
+    if (stepIdx > 0) document.getElementById(steps[stepIdx-1]).classList.replace('active','done');
+    if (stepIdx < steps.length) { document.getElementById(steps[stepIdx]).classList.add('active'); stepIdx++; }
+  }, 1800);
+
+  const fd = new FormData();
+  fd.append('api_key', apiKey);
+  fd.append('instructions', document.getElementById('instructions').value);
+  fd.append('output_format', state.notesFormat);
+  fd.append('detail_level', state.detailLevel);
+  state.files.forEach(f => fd.append('files', f));
+
+  try {
+    const res = await fetch('/api/process', { method:'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok || data.error) { showError('notes', data.error || 'Error desconocido'); return; }
+
+    state.currentNotes = data.notes;
+    clearInterval(stepTimer);
+    steps.forEach(s => { document.getElementById(s).classList.remove('active'); document.getElementById(s).classList.add('done'); });
+
+    // Render
+    document.getElementById('notes-preview').innerHTML = marked.parse(data.notes);
+    const words = data.notes.trim().split(/\s+/).length;
+    const secs = (data.notes.match(/^##/gm)||[]).length;
+    document.getElementById('notes-stats').innerHTML =
+      `<span class="stat"><strong>${words.toLocaleString()}</strong> palabras</span>
+       <span class="stat"><strong>${secs}</strong> secciones</span>
+       <span class="stat">Formato: <strong>${state.notesFormat.toUpperCase()}</strong></span>`;
+    document.getElementById('dl-format-label').textContent = state.notesFormat.toUpperCase();
+    showResult('notes');
+  } catch(e) {
+    clearInterval(stepTimer);
+    showError('notes', 'Error de red: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    hideLoader('notes');
+    // Reset steps
+    setTimeout(()=>steps.forEach(s=>{document.getElementById(s).classList.remove('active','done')}),500);
+  }
+}
+
+async function downloadNotes() { downloadAs(state.notesFormat); }
+async function downloadAs(fmt) {
+  if (!state.currentNotes) return;
+  const res = await fetch('/api/download',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ notes: state.currentNotes, output_format: fmt, title: 'Apuntes IA' })
+  });
+  if (!res.ok) return;
+  const blob = await res.blob();
+  triggerDownload(blob, `apuntes.${fmt}`);
+}
+function copyNotes() {
+  navigator.clipboard.writeText(state.currentNotes);
+  showTempMsg('¡Copiado!');
+}
+
+// ═══════════════════════════════════════════════
+//  RUN TEXT TOOL
+// ═══════════════════════════════════════════════
+async function runTool() {
+  const apiKey = document.getElementById('api-key-tools').value.trim();
+  if (!apiKey) return showError('tools', 'Ingresa tu API Key.');
+
+  const isMerge = state.currentTool === 'merge';
+  const text = isMerge
+    ? document.getElementById('tool-text2a').value.trim()
+    : document.getElementById('tool-text').value.trim();
+  const text2 = isMerge ? document.getElementById('tool-text2b').value.trim() : '';
+
+  if (!text) return showError('tools', 'Escribe o pega el texto a procesar.');
+  hideError('tools');
+
+  const btn = document.getElementById('btn-tool');
+  btn.disabled = true;
+  showLoader('tools');
+  hideResult('tools');
+
+  const options = {};
+  if (state.currentTool === 'rewrite') options.style = document.getElementById('sel-style').value;
+  if (state.currentTool === 'translate') options.language = document.getElementById('sel-lang').value;
+
+  try {
+    const res = await fetch('/api/text-tool',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ api_key:apiKey, tool:state.currentTool, text, text2, options, output_format:state.toolsFormat })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) { showError('tools', data.error || 'Error'); return; }
+
+    state.currentToolResult = data.result;
+    document.getElementById('tools-preview').innerHTML = marked.parse(data.result);
+    showResult('tools');
+  } catch(e) {
+    showError('tools', 'Error de red: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    hideLoader('tools');
+  }
+}
+
+async function downloadTool() { downloadToolAs(state.toolsFormat); }
+async function downloadToolAs(fmt) {
+  if (!state.currentToolResult) return;
+  const res = await fetch('/api/download-text',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ text: state.currentToolResult, output_format: fmt, title: 'Resultado' })
+  });
+  if (!res.ok) return;
+  const blob = await res.blob();
+  triggerDownload(blob, `resultado.${fmt}`);
+}
+function copyTool() {
+  navigator.clipboard.writeText(state.currentToolResult);
+  showTempMsg('¡Copiado!');
+}
+
+// ═══════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════
+function showError(ctx, msg) {
+  document.getElementById(`${ctx}-error-msg`).textContent = msg;
+  document.getElementById(`${ctx}-error`).classList.remove('hidden');
+}
+function hideError(ctx) { document.getElementById(`${ctx}-error`).classList.add('hidden'); }
+function showLoader(ctx) { document.getElementById(`${ctx}-loader`).classList.add('show'); }
+function hideLoader(ctx) { document.getElementById(`${ctx}-loader`).classList.remove('show'); }
+function showResult(ctx) { document.getElementById(`${ctx}-result`).classList.add('show'); }
+function hideResult(ctx) { document.getElementById(`${ctx}-result`).classList.remove('show'); }
+
+function triggerDownload(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function showTempMsg(msg) {
+  const el = document.createElement('div');
+  el.textContent = msg;
+  Object.assign(el.style, {
+    position:'fixed',bottom:'32px',left:'50%',transform:'translateX(-50%)',
+    background:'var(--purple)',color:'#fff',padding:'10px 24px',borderRadius:'30px',
+    fontWeight:'600',fontSize:'.9rem',zIndex:'9999',opacity:'1',transition:'opacity .4s'
+  });
+  document.body.appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';setTimeout(()=>el.remove(),400)},1800);
+}
+
+// Init stats
+updateStats();
+</script>
+</body>
+</html>
